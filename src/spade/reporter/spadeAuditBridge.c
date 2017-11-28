@@ -60,12 +60,14 @@ int *thread_create_time;
 // UBSI Unit analysis
 #include <assert.h>
 #include "uthash.h"
-#define UENTRY 0xffffff9c
-#define UEXIT 0xffffff9b
-#define MREAD1 0xffffff38
-#define MREAD2 0xffffff37
-#define MWRITE1 0xfffffed4
-#define MWRITE2 0xfffffed3
+#define UENTRY1 0xffffff9c // -100
+#define UENTRY2 0xffffff9a // -102
+#define UEXIT1 0xffffff9b  // -101
+#define UEXIT2 0xffffff99  // -103
+#define MREAD1 0xffffff38  // -200
+#define MREAD2 0xffffff37  // -201
+#define MWRITE1 0xfffffed4 // -300
+#define MWRITE2 0xfffffed3 // -301
 
 typedef int bool;
 #define true 1
@@ -74,7 +76,7 @@ typedef int bool;
 typedef struct thread_unit_t {
 		int tid;
 		int threadtime; // thread start time in second.
-		int loopid; // loopid. in the output, we call this unitid.
+		long int loopid; // loopid. in the output, we call this unitid.
 		int iteration;
 		double timestamp; // loop start time. Not iteration start.
 		int count; // if two or more loops starts at the same timestamp. We use count to distinguish them.
@@ -107,6 +109,7 @@ typedef struct unit_table_t {
 		int pid; // process id.  (main thread id)
 		thread_unit_t cur_unit;
 		bool valid; // is valid unit?
+		long int tmp_loopid;
 		long int r_addr;
 		long int w_addr;
 		link_unit_t *link_unit;
@@ -126,7 +129,7 @@ typedef struct event_buf_t {
 // Equality check is done using only tid, unitid, and iteration
 typedef struct iteration_count_t{
 	int tid;
-	int unitid;
+	long int unitid;
 	int iteration;
 	int count;
 } iteration_count_t;
@@ -504,7 +507,7 @@ int main(int argc, char *argv[]) {
  * If doesn't exist then adds this iteration_count and returns the count
  * value which would be zero.
  */
-int get_iteration_count(int tid, int unitid, int iteration){
+int get_iteration_count(int tid, long int unitid, int iteration){
 	int count = -1;
 	// Check if the iteration exists
 	if(current_time_iterations_index != 0){
@@ -609,7 +612,7 @@ int emit_log(unit_table_t *ut, char* buf, bool print_unit, bool print_proc)
 		
 		rc = printf("%s", buf);
 		if(print_unit) {
-				rc += printf(" unit=(pid=%d thread_time=%d.000 unitid=%d iteration=%d time=%.3lf count=%d) "
+				rc += printf(" unit=(pid=%d thread_time=%d.000 unitid=%ld iteration=%d time=%.3lf count=%d) "
 							,ut->cur_unit.tid, ut->thread.time, ut->cur_unit.loopid, ut->cur_unit.iteration, ut->cur_unit.timestamp, ut->cur_unit.count);
 		} 
 
@@ -677,7 +680,7 @@ void loop_exit(unit_table_t *unit)
 		unit->valid = false;
 }
 
-void unit_entry(unit_table_t *unit, long a1, char* buf)
+void unit_entry(unit_table_t *unit, long int a1, char* buf)
 {
 		char tmp[10240];
 		int tid = unit->thread.tid;
@@ -714,7 +717,7 @@ void unit_entry(unit_table_t *unit, long a1, char* buf)
 		emit_log(unit, tmp, true, true);
 }
 
-void unit_end(unit_table_t *unit, long a1)
+void unit_end(unit_table_t *unit, long int a1)
 {
 		struct link_unit_t *ut;
 		char *buf;
@@ -853,7 +856,7 @@ void mem_read(unit_table_t *ut, long int addr, char *buf)
 						lt = (link_unit_t*) malloc(sizeof(link_unit_t));
 						lt->id = pmt->last_written_unit;
 						HASH_ADD(hh, ut->link_unit, id, sizeof(thread_unit_t), lt);
-						sprintf(tmp, "type=UBSI_DEP dep=(pid=%d thread_time=%d.000 unitid=%d iteration=%d time=%.3lf count=%d), "
+						sprintf(tmp, "type=UBSI_DEP dep=(pid=%d thread_time=%d.000 unitid=%ld iteration=%d time=%.3lf count=%d), "
 								,lt->id.tid, lt->id.threadtime, lt->id.loopid, lt->id.iteration, lt->id.timestamp, lt->id.count);
 						emit_log(ut, tmp, true, true);
 				}
@@ -923,14 +926,24 @@ void UBSI_event(long tid, long a0, long a1, char *buf)
 		}
 
 		switch(a0) {
-				case UENTRY: 
-						if(ut->valid) unit_end(ut, a1);
-						unit_entry(ut, a1, buf);
+				case UENTRY1:
+						ut->tmp_loopid = a1;
+						ut->tmp_loopid = ut->tmp_loopid << 32;
 						break;
-				case UEXIT: 
+				case UENTRY2:
+						ut->tmp_loopid += a1;
+						if(ut->valid) unit_end(ut, ut->tmp_loopid);
+						unit_entry(ut, ut->tmp_loopid, buf);
+						break;
+				case UEXIT1:
+						ut->tmp_loopid = a1;
+						ut->tmp_loopid = ut->tmp_loopid << 32;
+						break;
+				case UEXIT2:
+						ut->tmp_loopid += a1;
 						if(isNewUnit == false)
 						{
-								unit_end(ut, a1);
+								unit_end(ut, ut->tmp_loopid);
 								loop_exit(ut);
 						}
 						break;
@@ -1038,7 +1051,7 @@ void syscall_handler(char *buf)
 		{
 				ptr = strstr(buf, " a0=");
 				a0 = strtol(ptr+4, NULL, 16);
-				if(a0 == UENTRY || a0 == UEXIT || a0 == MREAD1 || a0 == MREAD2 || a0 == MWRITE1 || a0 ==MWRITE2)
+				if(a0 == UENTRY1 || a0 == UENTRY2 || a0 == UEXIT1 || a0 == UEXIT2 || a0 == MREAD1 || a0 == MREAD2 || a0 == MWRITE1 || a0 ==MWRITE2)
 				{
 						ptr = strstr(ptr, " a1=");
 						a1 = strtol(ptr+4, NULL, 16);

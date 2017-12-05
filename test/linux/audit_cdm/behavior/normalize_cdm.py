@@ -43,7 +43,7 @@ while line:
     line = re.sub(r'\"long\":[0-9\,]+', r'', line)
     line = re.sub(r'\"ppid\":\"[0-9]+\"\,?', r'', line)
     line = re.sub(r'\"tgid\":\"[0-9]+\"\,?', r'', line)
-    line = re.sub(r'\/proc\/[0-9]+\/', r'\/proc\/', line)
+    line = re.sub(r'\/proc\/[0-9]+\/', r'/proc/', line)
     line = re.sub(r'\"cid\":[0-9\,]+', r'', line)
     line = re.sub(r'\"cwd\":\"[0-9a-z\/]+\",?', r'', line)
     line = re.sub(r'\"mode\":\"[0-9]+\",?', r'', line)
@@ -51,9 +51,13 @@ while line:
     line = re.sub(r'\"localPort\":[0-9\,]+', r'', line)
     line = re.sub(r'\"seen time\":\"[0-9\.]+\"', r'', line)
     line = re.sub(r'\"remotePort\":[0-9\,]+', r'', line)
-    line = re.sub(r'\"[\/a-z0-9]+unit\_tests\/tests', r'unit\_tests\/tests', line)
+    line = re.sub(r'\"[\/a-z0-9]+unit\_tests\/tests', r'unit_tests/tests', line)
     line = re.sub(r'\"EVENT_WRITE\":\"[0-9]+\"', r'\"EVENT_WRITE\"', line)
     line = re.sub(r'\"EVENT_READ\":\"[0-9]+\"', r'\"EVENT_READ\"', line)
+    line = re.sub(r'\"string\":\"[0-9a-zA-Z\/]+linux\/audit_cdm\/behavior\/tests\/', r'"string":"', line)
+    line = re.sub(r'\"userId":\"[0-9]+\"', r'"userId"', line)
+    line = re.sub(r'\"euid":\"[0-9]+\"', r'"euid"', line)
+    line = re.sub(r'\"groupIds":\[[0-9\,\"]+\]', r'"groupIds:[]"', line)
     print line
     line = f.readline()
      

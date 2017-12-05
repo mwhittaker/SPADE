@@ -15,6 +15,7 @@ foreach file (`ls $PWD/$1/*.bin`)
   if (! -e $file".png") then
    echo "testing " $file
    sudo ./gen_audit.sh $file >& /dev/null
+   sleep 2
    ./normalize_cdm.py $file".json" |sort > tmp.json
    set cnt = `sort $file".json".master |diff - tmp.json |wc -l`
    if ($cnt > 0) then

@@ -91,6 +91,7 @@ int main(int argc, char** argv)
 	 run_server(portnum);
        }
        else {
+         sleep(2);
 	 printf("running client\n");  
 	 run_client(portnum);
 	 break;

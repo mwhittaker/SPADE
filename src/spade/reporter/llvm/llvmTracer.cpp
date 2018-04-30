@@ -55,8 +55,8 @@ namespace {
         return "%n";
     }
 
-  
-    // Creating a Global variable for string 'str', and returning the pointer to the Global  
+
+    // Creating a Global variable for string 'str', and returning the pointer to the Global
     static inline GlobalVariable *getStringRef(Module *M, const std::string &str) {
         Constant *Init = ConstantDataArray::getString(M->getContext(), str);
         Twine twine("trstr");
@@ -75,16 +75,16 @@ namespace {
             Function * pidFunction,
 	    Function *BufferStrings
             ){
-     
+
         Module *Mod = BB->getParent()->getParent(); //BasicBlock is a child of Function which is a child of Module
-       
+
         //TODO: Add Single call to Pid and ThreadHandle per function entry/exit
         //TODO: Call to pid function must be conditional on a command line flag
         //Insert Call to getpid function
-        CallInst* pid = CallInst::Create((Value*) pidFunction, Twine("pid"), &(*InsertBefore)); 
-        Message += " #Pid = %d";
+        CallInst* pid = CallInst::Create((Value*) pidFunction, Twine("pid"), &(*InsertBefore));
+        Message += " #Pid = %d\n";
         PrintArgsIn.push_back(pid);
-	
+
         //Insert function to get Thread Identifier
         CallInst* threadHandle = CallInst::Create((Value*) SPADEThreadIdFunc, Twine("ThreadHandle"), &(*InsertBefore)); //gets the fd for the getThreadId SPADE library fn
         threadHandle->setTailCall();
@@ -92,23 +92,23 @@ namespace {
         //Message is the string argument to fprintf. GEP is used for getting the handle to Message.
         GlobalVariable *fmtVal;
         fmtVal = getStringRef(Mod, Message);
-        Constant *GEP = ConstantExpr::getGetElementPtr((Constant*) fmtVal, ArrayRef<Constant*>(std::vector<Constant*>(2, Constant::getNullValue(Type::getInt64Ty(Mod->getContext())))), 2); 
+        Constant *GEP = ConstantExpr::getGetElementPtr((Constant*) fmtVal, ArrayRef<Constant*>(std::vector<Constant*>(2, Constant::getNullValue(Type::getInt64Ty(Mod->getContext())))), 2);
 
         //Arguments for fprintf. socketHandle, Message and Thread ID followed by arguments
         std::vector<Value*> PrintArgs;
-        
+
         PrintArgs.push_back(GEP);
         PrintArgs.push_back(threadHandle);
-	
+
         for (unsigned i = 0; i < PrintArgsIn.size(); i++) {
             PrintArgs.push_back(PrintArgsIn[i]);
         }
 
 	if(BufferStrings != NULL){
-	    printf("function was retrieved \n");	
+	    printf("function was retrieved \n");
 	}
-	
-	CallInst::Create((Value*) BufferStrings, ArrayRef<Value*>(PrintArgs), Twine(""), &(*InsertBefore)); 		 
+
+	CallInst::Create((Value*) BufferStrings, ArrayRef<Value*>(PrintArgs), Twine(""), &(*InsertBefore));
     }
 
     static inline void FunctionEntry(
@@ -128,9 +128,9 @@ namespace {
         raw_string_ostream strStream(printString);
         //Prints the function name to strStream
 
-	//F.printAsOperand(strStream, true, F.getParent());		
-	std::string functionName;     
-        functionName = F.getName().str();   
+	//F.printAsOperand(strStream, true, F.getParent());
+	std::string functionName;
+        functionName = F.getName().str();
         printString = "%lu E: @" + functionName; //WAS  %d  now is %lu is for Thread ID, E is for Function Entry
 
         unsigned ArgNo = 0;
@@ -140,9 +140,9 @@ namespace {
                 argName = "";
                 raw_string_ostream strStream2(argName);
 
-		iterator->printAsOperand(strStream2, true, F.getParent());		
-		argName = strStream2.str();		
-	
+		iterator->printAsOperand(strStream2, true, F.getParent());
+		argName = strStream2.str();
+
                 //Escaping % in argName
                 std::string Tmp;
                 std::swap(Tmp, argName);
@@ -179,17 +179,17 @@ namespace {
         std::string retName;
         raw_string_ostream strStream(printString);
         raw_string_ostream strStream2(retName);
- 
-	std::string functionName;		
+
+	std::string functionName;
         printString = "%lu L: @" + BB->getParent()->getName().str(); //WAS %d NOW IS %lu is for Thread ID, L is for Function Leave
-	
+
         std::vector<Value*> PrintArgs;
         if (!BB->getParent()->getReturnType()->isVoidTy()) {
 
-            printString = printString + "  R:  "; //R indicates the return value 
-	    Ret->getReturnValue()->printAsOperand(strStream2, true, BB->getParent()->getParent());			   
+            printString = printString + "  R:  "; //R indicates the return value
+	    Ret->getReturnValue()->printAsOperand(strStream2, true, BB->getParent()->getParent());
 	    retName = strStream2.str();
-		
+
             //Escaping % in retName
             std::string Tmp;
             std::swap(Tmp, retName);
@@ -212,8 +212,8 @@ namespace {
         InsertPrintInstruction(PrintArgs, BB, Ret, printString, SPADEThreadIdFunc, pidFunction, BufferStrings);
     }
 
-   	
-   static cl::opt<std::string> ArgumentsFileName("FunctionNames-input", cl::init(""), cl::Hidden, cl::desc("specifies the input file for the functionNames"));	
+
+   static cl::opt<std::string> ArgumentsFileName("FunctionNames-input", cl::init(""), cl::Hidden, cl::desc("specifies the input file for the functionNames"));
 
 
     class InsertMetadataCode : public FunctionPass {
@@ -224,9 +224,9 @@ namespace {
         Function * pidFunction;
 	Function* BufferStrings;
 	bool monitorMethods;
- 	  	
-	std::map<std::string, int> methodsToMonitor;	
-	
+
+	std::map<std::string, int> methodsToMonitor;
+
     public:
         static char ID; // Pass identification, replacement for typeid
 
@@ -234,30 +234,30 @@ namespace {
         }
 
         bool doInitialization(Module &M) {
-   
+
 	    FunctionType * ft = FunctionType::get(Type::getInt32Ty(M.getContext()), false);
-	    pidFunction = Function::Create(ft, GlobalValue::ExternalLinkage, "getpid", &M); 
+	    pidFunction = Function::Create(ft, GlobalValue::ExternalLinkage, "getpid", &M);
 
 
-	    std::string fileName = ArgumentsFileName == "" ? "arguments" : ArgumentsFileName.getValue().c_str();	
+	    std::string fileName = ArgumentsFileName == "" ? "arguments" : ArgumentsFileName.getValue().c_str();
 	    if (strcmp(fileName.c_str(), "-monitor-all") != 0){
-	   	 
-		    std::ifstream file(fileName);	
+
+		    std::ifstream file(fileName);
 		    cout<<"Invoked Do Initialization"<< fileName << endl;
-		    std::string str;	 		
+		    std::string str;
 
 		    while (std::getline(file, str))
-		    {	
+		    {
 			methodsToMonitor[str] = 1;
-			cout<< " Function name FROM FILE : " << str <<"\n"; 
-		    }			 	  	
+			cout<< " Function name FROM FILE : " << str <<"\n";
+		    }
 		    monitorMethods = true;
 	    }
 	    else{
 		monitorMethods = false;
 	    }
-			   
-	 
+
+
             // Setting up argument types for fprintf
             Type *CharTy = Type::getInt8PtrTy(M.getContext());
 
@@ -287,43 +287,43 @@ namespace {
             MTy = FunctionType::get(GenericPtr, false); //IAM was IntTy
             SPADESocketFunc = (Function*) M.getOrInsertFunction("LLVMReporter_getSocket", MTy);
 
-	    BufferStrings = M.getFunction("bufferString");		
+	    BufferStrings = M.getFunction("bufferString");
 	    if(BufferStrings == NULL){
-	        printf(" *** Function not found in module **** \n");		
-	    }      
-				
+	        printf(" *** Function not found in module **** \n");
+	    }
+
             return false;
         }
 
 
         bool runOnFunction(Function &F) {
-            
-	 
+
+
 	    if(strcmp(F.getName().str().c_str(), "main") == 0){
-	       
-	       Function * exitingFunction = F.getParent()->getFunction("setAtExit");	 
+
+	       Function * exitingFunction = F.getParent()->getFunction("setAtExit");
 	       if(exitingFunction == NULL){
 			printf("setAtExit was not retrieved \n");
 	        }
-								      
+
 	        BasicBlock &BB = F.getEntryBlock();
-                Instruction *InsertPos = BB.begin();        				
-	        CallInst::Create((Value*) exitingFunction, Twine(""), &(*InsertPos));	  
+                Instruction *InsertPos = BB.begin();
+	        CallInst::Create((Value*) exitingFunction, Twine(""), &(*InsertPos));
 	    }
-	
-		
+
+
 	    cout<< "Function name : " << F.getName().str() << "\n";
 	    // If the function is not supposed to be monitored just return true
 	    if((monitorMethods  &&  methodsToMonitor.find(F.getName().str()) == methodsToMonitor.end()) || strcmp(F.getName().str().c_str(),"bufferString")==0 || strcmp(F.getName().str().c_str(), "flushStrings")==0 || strcmp(F.getName().str().c_str(), "setAtExit")==0 ) {
 	        	return true;
-            }     
-		
+            }
+
             std::vector<Instruction*> valuesStoredInFunction;
             std::vector<BasicBlock*> exitBlocks;
 
             //FunctionEntry inserts Provenance instrumentation at the start of every function
             FunctionEntry(F, SPADEThreadIdFunc, pidFunction, BufferStrings);
-    
+
             //FunctionExit inserts Provenance instrumentation on the end of every function
             for (Function::iterator BB = F.begin(); BB != F.end(); ++BB) {
                 if (isa<ReturnInst > (BB->getTerminator()))
@@ -335,7 +335,7 @@ namespace {
 
     char InsertMetadataCode::ID = 0;
     static RegisterPass<InsertMetadataCode> X("provenance", "insert provenance instrumentation");
-	    
+
 }
 
 

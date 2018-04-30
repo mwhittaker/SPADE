@@ -55,22 +55,22 @@ public class LLVM extends AbstractReporter {
     public boolean launch(String arguments) {
         /*
         * argument can be 'forcedremoval=true' (default) or 'forcedremoval=false'
-        * if forcedremoval is specified as false, on removal of the reporter, reporter won't 
+        * if forcedremoval is specified as false, on removal of the reporter, reporter won't
         * shutdown unless the socket buffer from where instrumented programs sends in
         * provenance data is empitited.
         * if forcedremoval is true, it will discard this buffer and proceed to shutdown
         */
         try{
             String[] pairs = arguments.split("\\s+");
-            for (String pair : pairs) {                 
+            for (String pair : pairs) {
                 String[] keyvalue = pair.split("=");
                 String key = keyvalue[0];
                 String value = keyvalue[1];
-    
+
                 if (key.equals("forcedremoval") && value.equals("false")) {
                     forcedRemoval = false;
                 }
-                        
+
             }
             } catch (NullPointerException e) {
             } catch (ArrayIndexOutOfBoundsException e) {
@@ -177,6 +177,7 @@ class EventHandler implements Runnable {
     //trace contains thread id, function entry or exit, function name and arguments or return value.
     //trace looks like "123 E: $foo Arg #0: i32 %a =123".
     private void parseEvent(String line) {
+        line = line.trim();
         try {
             AbstractVertex function;
             AbstractVertex argument;

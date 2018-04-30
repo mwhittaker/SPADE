@@ -177,6 +177,7 @@ class EventHandler implements Runnable {
     //trace contains thread id, function entry or exit, function name and arguments or return value.
     //trace looks like "123 E: $foo Arg #0: i32 %a =123".
     private void parseEvent(String line) {
+        String originalLine = line.trim();
         line = line.trim();
         try {
             AbstractVertex function;
@@ -206,6 +207,11 @@ class EventHandler implements Runnable {
                 } else { // if there are no arguments and no return value
                     functionName = line;
                 }
+
+                // System.out.println("line         = '" + originalLine + "'.");
+                // System.out.println("tid          = '" + tid + "'.");
+                // System.out.println("EventType    = '" + EventType + "'.");
+                // System.out.println("functionName = '" + functionName + "'.");
 
                 Pattern pattern;
                 if (EventType == 'E') {

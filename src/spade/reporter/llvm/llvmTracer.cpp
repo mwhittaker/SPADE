@@ -81,9 +81,9 @@ namespace {
         //TODO: Add Single call to Pid and ThreadHandle per function entry/exit
         //TODO: Call to pid function must be conditional on a command line flag
         //Insert Call to getpid function
-        CallInst* pid = CallInst::Create((Value*) pidFunction, Twine("pid"), &(*InsertBefore));
-        Message += " #Pid = %d\n";
-        PrintArgsIn.push_back(pid);
+        // CallInst* pid = CallInst::Create((Value*) pidFunction, Twine("pid"), &(*InsertBefore));
+        // Message += " #Pid = %d\n";
+        // PrintArgsIn.push_back(pid);
 
         //Insert function to get Thread Identifier
         CallInst* threadHandle = CallInst::Create((Value*) SPADEThreadIdFunc, Twine("ThreadHandle"), &(*InsertBefore)); //gets the fd for the getThreadId SPADE library fn
